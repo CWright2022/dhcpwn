@@ -10,7 +10,7 @@ import (
 )
 
 func main() {
-	iface := "eth0"
+	iface := "ens33"
 	handle, err := pcap.OpenLive(iface, 65536, true, pcap.BlockForever)
 	if err != nil {
 		log.Fatal(err)
@@ -31,13 +31,13 @@ func main() {
 		IHL:      5,
 		TTL:      64,
 		Protocol: layers.IPProtocolUDP,
-		SrcIP:    net.IP{172, 21, 95, 26},
-		DstIP:    net.IP{172, 21, 95, 26},
+		SrcIP:    net.IP{192, 168, 254, 129},
+		DstIP:    net.IP{192, 168, 254, 130},
 	}
 
 	udp := &layers.UDP{
-		SrcPort: 68,
-		DstPort: 67,
+		SrcPort: 67,
+		DstPort: 68,
 	}
 	udp.SetNetworkLayerForChecksum(ip)
 
@@ -48,11 +48,9 @@ func main() {
 		Flags:        0x8000,
 		ClientHWAddr: srcMAC,
 		Options: layers.DHCPOptions{
-			layers.DHCPOptMessageType: layers.NewDHCPOption(
-				layers.DHCPOptParamsRequest,
-				[]byte{
-					byte(layers.DHCPOptRouter),
-				},
+			layers.NewDHCPOption(
+				layers.DHCPOptVendorOption,
+				[]byte("Hello World!"),
 			),
 		},
 	}
