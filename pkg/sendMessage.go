@@ -6,6 +6,8 @@ import (
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcap"
+	"pkg/getActiveInterface"
+    "pkg/getMAC"
 )
 
 func sendMessage(iface net.Interface, myIPAddr net.IP, dstIPAddr net.IP, message string) {
