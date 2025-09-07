@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os/exec"
 	"strings"
+    "pkg/getActiveInterface"
+    "pkg/sendMessage"
 )
 
 func getMAC(ip string) (string, error) {

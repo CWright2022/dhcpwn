@@ -4,6 +4,9 @@ import (
 	"log"
 	"net"
 	"fmt"
+	"github.com/cwright2022/dhcpwn/pkg/getActiveInterface"
+    "github.com/cwright2022/dhcpwn/pkg/getMAC"
+    "github.com/cwright2022/dhcpwn/pkg/sendMessage"
 )
 
 func main() {
