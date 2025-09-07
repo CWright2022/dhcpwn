@@ -1,4 +1,4 @@
-package main
+package getActiveInterface
 
 import (
 	"net"

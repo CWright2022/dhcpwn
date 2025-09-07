@@ -1,4 +1,4 @@
-module dhcpwn
+module github.com/cwright2022/dhcpwn
 
 go 1.18
 
