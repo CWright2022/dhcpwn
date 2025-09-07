@@ -1,4 +1,4 @@
-package sendMessage
+package main
 
 import (
 	"log"
