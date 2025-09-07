@@ -1,4 +1,4 @@
-package getMAC
+package main
 
 import (
 	"fmt"
