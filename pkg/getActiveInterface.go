@@ -1,8 +1,11 @@
-package main
+package getActiveInterface
 
 import (
 	"net"
 	"fmt"
+    "pkg/getActiveInterface"
+    "pkg/getMAC"
+    "pkg/sendMessage"
 )
 
 func getActiveInterface() (*net.Interface, net.IP, error) {
