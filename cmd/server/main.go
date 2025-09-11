@@ -1,8 +1,10 @@
 package main
+
 import (
+	"fmt"
 	"log"
 	"net"
-	"fmt"
+
 	"github.com/cwright2022/dhcpwn/internal/shared"
 )
 

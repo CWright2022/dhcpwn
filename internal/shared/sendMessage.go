@@ -3,6 +3,7 @@ package shared
 import (
 	"log"
 	"net"
+
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcap"
@@ -51,13 +52,13 @@ func SendMessage(iface net.Interface, myIPAddr net.IP, dstIPAddr net.IP, message
 				[]byte{byte(layers.DHCPMsgTypeRequest)},
 			),
 			layers.NewDHCPOption(
-                layers.DHCPOptParamsRequest,
-                []byte{
-                    byte(layers.DHCPOptSubnetMask),
-                    byte(layers.DHCPOptRouter),
-                    byte(layers.DHCPOptDNS),
-                },
-            ),
+				layers.DHCPOptParamsRequest,
+				[]byte{
+					byte(layers.DHCPOptSubnetMask),
+					byte(layers.DHCPOptRouter),
+					byte(layers.DHCPOptDNS),
+				},
+			),
 			layers.NewDHCPOption(
 				layers.DHCPOptVendorOption,
 				[]byte(message),
