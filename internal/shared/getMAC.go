@@ -1,4 +1,4 @@
-package main
+package shared
 
 import (
 	"fmt"
@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-func getMAC(ip string) (string, error) {
+func GetMAC(ip string) (string, error) {
     out, err := exec.Command("arp", "-n", ip).Output()
     if err != nil {
         return "", err

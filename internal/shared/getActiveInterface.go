@@ -1,11 +1,11 @@
-package main
+package shared
 
 import (
 	"net"
 	"fmt"
 )
 
-func getActiveInterface() (*net.Interface, net.IP, error) {
+func GetActiveInterface() (*net.Interface, net.IP, error) {
     interfaces, err := net.Interfaces()
     if err != nil {
         return nil, nil, err

@@ -1,4 +1,4 @@
-package main
+package shared
 
 import (
 	"log"
@@ -8,7 +8,7 @@ import (
 	"github.com/google/gopacket/pcap"
 )
 
-func sendMessage(iface net.Interface, myIPAddr net.IP, dstIPAddr net.IP, message string) {
+func SendMessage(iface net.Interface, myIPAddr net.IP, dstIPAddr net.IP, message string) {
 	handle, err := pcap.OpenLive(iface.Name, 65536, true, pcap.BlockForever)
 	if err != nil {
 		log.Fatal(err)
