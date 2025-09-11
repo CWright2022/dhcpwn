@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-func GetMAC(ip string) (string, error) {
+func GetNextHopMac(ip string) (string, error) {
 	out, err := exec.Command("arp", "-n", ip).Output()
 	if err != nil {
 		return "", err
