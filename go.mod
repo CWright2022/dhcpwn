@@ -1,6 +1,6 @@
 module github.com/cwright2022/dhcpwn
 
-go 1.25.1
+go 1.25.0
 
 require (
 	github.com/google/gopacket v1.1.19

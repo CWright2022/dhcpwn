@@ -10,7 +10,7 @@ import (
 
 func main() {
 	addr := net.UDPAddr{
-		Port: 1067, // custom server port
+		Port: 68, // custom server port
 		IP:   net.IPv4zero,
 	}
 

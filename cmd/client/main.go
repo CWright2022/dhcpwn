@@ -11,12 +11,12 @@ import (
 func main() {
 	serverAddr := net.UDPAddr{
 		IP:   net.ParseIP("127.0.0.1"),
-		Port: 1067, // match custom server port
+		Port: 68, // match custom server port
 	}
 
 	localAddr := net.UDPAddr{
 		IP:   net.IPv4zero,
-		Port: 1068, // custom client port
+		Port: 67, // custom client port
 	}
 
 	conn, err := net.ListenUDP("udp4", &localAddr)
