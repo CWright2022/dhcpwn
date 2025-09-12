@@ -17,10 +17,21 @@ func SendMessage(iface net.Interface, myIPAddr net.IP, dstIPAddr net.IP, message
 	var dstMAC net.HardwareAddr
 	defer handle.Close()
 	if dstIPAddr.Equal(net.ParseIP("127.0.0.1")) || dstIPAddr.Equal(myIPAddr) {
-		dstMAC = iface.HardwareAddr
-	} else {
-		parsedDstMac, _ := GetNextMAC(dstIPAddr.String())
-		dstMAC, _ = net.ParseMAC(parsedDstMac)
+		conn, err := net.DialUDP("udp4", nil, &net.UDPAddr{
+			IP:   dstIPAddr,
+			Port: 677, // your server port
+		})
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer conn.Close()
+
+		_, err = conn.Write([]byte(message))
+		if err != nil {
+			log.Fatal(err)
+		}
+		log.Printf("[UDP] Message sent to %s: %s\n", dstIPAddr, message)
+		return
 	}
 	srcMAC := iface.HardwareAddr
 	// dstMAC := iface.HardwareAddr // Use own MAC as destination for testing

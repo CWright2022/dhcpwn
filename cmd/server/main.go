@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	// "fmt"
 	"log"
 	"net"
 
@@ -9,8 +9,8 @@ import (
 )
 
 func main() {
-	clientIP := net.IP{192, 168, 254, 130}
-	// clientIP := net.IP{192, 168, 254, 129}
+	// clientIP := net.IP{192, 168, 254, 130}
+	clientIP := net.IP{192, 168, 254, 129}
 	iface, ipAddr, err := shared.GetActiveInterface()
 	if err != nil {
 		log.Fatal(err)
