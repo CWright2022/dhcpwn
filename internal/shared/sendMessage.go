@@ -34,7 +34,8 @@ func SendMessage(iface net.Interface, myIPAddr net.IP, dstIPAddr net.IP, message
 		return
 	}
 	srcMAC := iface.HardwareAddr
-	// dstMAC := iface.HardwareAddr // Use own MAC as destination for testing
+	parsedDstMac, _ := GetNextMAC(dstIPAddr.String())
+	dstMAC, _ = net.ParseMAC(parsedDstMac)
 
 	ethernet := &layers.Ethernet{
 		SrcMAC:       srcMAC,
