@@ -13,9 +13,16 @@ func SendMessage(iface net.Interface, myIPAddr net.IP, dstIPAddr net.IP, message
 	if err != nil {
 		log.Fatal(err)
 	}
+	var dstMAC net.HardwareAddr
 	defer handle.Close()
+	if dstIPAddr.Equal(net.ParseIP("127.0.0.1")) || dstIPAddr.Equal(myIPAddr) {
+		dstMAC = iface.HardwareAddr
+	} else {
+		parsedDstMac, _ := GetNextMAC(dstIPAddr.String())
+		dstMAC, _ = net.ParseMAC(parsedDstMac)
+	}
 	srcMAC := iface.HardwareAddr
-	dstMAC, _ := net.ParseMAC("00:00:00:38:e2:21")
+	// dstMAC := iface.HardwareAddr // Use own MAC as destination for testing
 
 	ethernet := &layers.Ethernet{
 		SrcMAC:       srcMAC,
@@ -33,8 +40,8 @@ func SendMessage(iface net.Interface, myIPAddr net.IP, dstIPAddr net.IP, message
 	}
 
 	udp := &layers.UDP{
-		SrcPort: 67,
-		DstPort: 68,
+		SrcPort: 19111,
+		DstPort: 677,
 	}
 	udp.SetNetworkLayerForChecksum(ip)
 
