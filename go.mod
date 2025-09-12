@@ -3,6 +3,7 @@ module github.com/cwright2022/dhcpwn
 go 1.25.1
 
 require (
+	github.com/google/gopacket v1.1.19
 	github.com/insomniacslk/dhcp v0.0.0-20250828142853-d3abe7ccb0ad
 )
 
