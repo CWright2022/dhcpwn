@@ -5,52 +5,47 @@ import (
 	"log"
 	"net"
 
-	"github.com/google/gopacket"
-	"github.com/google/gopacket/layers"
+	"github.com/insomniacslk/dhcp/dhcpv4"
 )
 
 func main() {
-	// DHCP client listens on UDP 68
-	addr := &net.UDPAddr{
-		IP:   net.IPv4zero,
-		Port: 68,
+	serverAddr := net.UDPAddr{
+		IP:   net.ParseIP("127.0.0.1"),
+		Port: 1067, // match custom server port
 	}
 
-	conn, err := net.ListenUDP("udp4", addr)
+	localAddr := net.UDPAddr{
+		IP:   net.IPv4zero,
+		Port: 1068, // custom client port
+	}
+
+	conn, err := net.ListenUDP("udp4", &localAddr)
 	if err != nil {
-		log.Fatalf("failed to bind UDP socket: %v", err)
+		log.Fatalf("failed to listen: %v", err)
 	}
 	defer conn.Close()
 
-	log.Println("DHCP client listening on port 68...")
+	// Construct a simple DHCP Discover packet
+	pkt, _ := dhcpv4.New(dhcpv4.WithTransactionID(dhcpv4.TransactionID{0x12, 0x34, 0x56, 0x78}))
+	pkt.Options.Update(dhcpv4.OptMessageType(dhcpv4.MessageTypeDiscover))
+	pkt.Options.Update(dhcpv4.OptGeneric(dhcpv4.OptionVendorSpecificInformation, []byte("Hello from client")))
 
-	buf := make([]byte, 1500) // enough for a full Ethernet frame
-	for {
-		n, src, err := conn.ReadFromUDP(buf)
-		if err != nil {
-			log.Printf("read error: %v", err)
-			continue
-		}
-
-		log.Printf("Received %d bytes from %s", n, src)
-
-		// Decode packet
-		packet := gopacket.NewPacket(buf[:n], layers.LayerTypeDHCPv4, gopacket.Default)
-		if dhcpLayer := packet.Layer(layers.LayerTypeDHCPv4); dhcpLayer != nil {
-			dhcp, _ := dhcpLayer.(*layers.DHCPv4)
-
-			fmt.Printf("DHCP Message from %s:\n", src)
-			fmt.Printf("  Xid: 0x%x\n", dhcp.Xid)
-			fmt.Printf("  ClientHWAddr: %s\n", dhcp.ClientHWAddr)
-			fmt.Printf("  YourIP: %s\n", dhcp.YourClientIP)
-			fmt.Printf("  ServerIP: %s\n", dhcp.ServerName)
-
-			// Dump DHCP options
-			for _, opt := range dhcp.Options {
-				fmt.Printf("  Option %d: %v\n", opt.Type, opt.Data)
-			}
-		} else {
-			log.Println("Not a DHCP packet")
-		}
+	// Send to server
+	_, err = conn.WriteToUDP(pkt.ToBytes(), &serverAddr)
+	if err != nil {
+		log.Fatalf("failed to send: %v", err)
 	}
+
+	fmt.Println("Sent DHCP Discover to server")
+
+	// Wait for reply
+	buf := make([]byte, 1500)
+	n, _, err := conn.ReadFromUDP(buf)
+	if err != nil {
+		log.Fatalf("error reading: %v", err)
+	}
+
+	reply, _ := dhcpv4.FromBytes(buf[:n])
+	vendorOpt := reply.Options.Get(dhcpv4.OptionVendorSpecificInformation)
+	fmt.Printf("Received reply from server with vendor option: %v\n", vendorOpt)
 }

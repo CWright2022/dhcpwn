@@ -5,17 +5,43 @@ import (
 	"log"
 	"net"
 
-	"github.com/cwright2022/dhcpwn/internal/shared"
+	"github.com/insomniacslk/dhcp/dhcpv4"
 )
 
 func main() {
-	// serverIP := net.IP{192, 168, 254, 130} //use for VM-to-VM testing
-	serverIP := net.IP{172, 21, 95, 26} //use for WSL testing
-	iface, ipAddr, _ := shared.GetActiveInterface()
-	nextMAC, err := shared.GetNextHopMac(serverIP.String())
-	fmt.Println("Next hop MAC: ", nextMAC)
-	if err != nil {
-		log.Fatal(err)
+	addr := net.UDPAddr{
+		Port: 1067, // custom server port
+		IP:   net.IPv4zero,
 	}
-	shared.SendMessage(*iface, ipAddr, serverIP, "pwned")
+
+	conn, err := net.ListenUDP("udp4", &addr)
+	if err != nil {
+		log.Fatalf("failed to listen: %v", err)
+	}
+	defer conn.Close()
+	fmt.Println("Server listening on port 1067")
+
+	buf := make([]byte, 1500)
+	for {
+		n, clientAddr, err := conn.ReadFromUDP(buf)
+		if err != nil {
+			log.Printf("error reading: %v", err)
+			continue
+		}
+
+		pkt, err := dhcpv4.FromBytes(buf[:n])
+		if err != nil {
+			log.Printf("failed to parse DHCP packet: %v", err)
+			continue
+		}
+
+		vendorOpt := pkt.Options.Get(dhcpv4.OptionVendorSpecificInformation)
+		fmt.Printf("Received DHCP packet from %v with vendor option: %v\n", clientAddr, vendorOpt)
+
+		// Send a reply
+		reply, _ := dhcpv4.NewReplyFromRequest(pkt)
+		reply.Options.Update(dhcpv4.OptMessageType(dhcpv4.MessageTypeAck))
+		reply.Options.Update(dhcpv4.OptGeneric(dhcpv4.OptionVendorSpecificInformation, []byte("Hello from client")))
+		conn.WriteToUDP(reply.ToBytes(), clientAddr)
+	}
 }
