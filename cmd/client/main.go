@@ -1,51 +1,52 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+)
 
-	"github.com/insomniacslk/dhcp/dhcpv4"
+const (
+	serverIP   = "127.0.0.1" // change to server IP if remote
+	serverPort = 68
+	pollEvery  = 10 * time.Second
+	readTO     = 3 * time.Second // how long to wait for server reply
+	clientTID  = "test-client"
 )
 
 func main() {
-	serverAddr := net.UDPAddr{
-		IP:   net.ParseIP("127.0.0.1"),
-		Port: 68, // match custom server port
+
+	serverAddr := &net.UDPAddr{
+		IP:   net.ParseIP(serverIP),
+		Port: serverPort,
 	}
 
-	localAddr := net.UDPAddr{
-		IP:   net.IPv4zero,
-		Port: 67, // custom client port
+	// Use ticker to perform the periodic transaction.
+	ticker := time.NewTicker(pollEvery)
+	defer ticker.Stop()
+
+	// Run one immediately, then on each tick
+	log.Printf("client: starting, will poll server %s every %v", serverAddr.String(), pollEvery)
+	log.Printf("doing initial transaction\n")
+	response := doTransaction(serverAddr, clientTID)
+	log.Print(response)
+
+	// allow clean shutdown
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
+
+	for {
+		select {
+		case <-ticker.C:
+			log.Printf("doing transaction\n")
+			response = doTransaction(serverAddr, clientTID)
+			log.Print(response)
+		case <-stop:
+			log.Println("client: received shutdown signal, exiting")
+			return
+		}
 	}
-
-	conn, err := net.ListenUDP("udp4", &localAddr)
-	if err != nil {
-		log.Fatalf("failed to listen: %v", err)
-	}
-	defer conn.Close()
-
-	// Construct a simple DHCP Discover packet
-	pkt, _ := dhcpv4.New(dhcpv4.WithTransactionID(dhcpv4.TransactionID{0x12, 0x34, 0x56, 0x78}))
-	pkt.Options.Update(dhcpv4.OptMessageType(dhcpv4.MessageTypeDiscover))
-	pkt.Options.Update(dhcpv4.OptGeneric(dhcpv4.OptionVendorSpecificInformation, []byte("Hello from client")))
-
-	// Send to server
-	_, err = conn.WriteToUDP(pkt.ToBytes(), &serverAddr)
-	if err != nil {
-		log.Fatalf("failed to send: %v", err)
-	}
-
-	fmt.Println("Sent DHCP Discover to server")
-
-	// Wait for reply
-	buf := make([]byte, 1500)
-	n, _, err := conn.ReadFromUDP(buf)
-	if err != nil {
-		log.Fatalf("error reading: %v", err)
-	}
-
-	reply, _ := dhcpv4.FromBytes(buf[:n])
-	vendorOpt := reply.Options.Get(dhcpv4.OptionVendorSpecificInformation)
-	fmt.Printf("Received reply from server with vendor option: %v\n", vendorOpt)
 }
