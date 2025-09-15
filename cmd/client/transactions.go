@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net"
@@ -9,17 +10,64 @@ import (
 	"github.com/insomniacslk/dhcp/dhcpv4"
 )
 
-func buildRequestTxn(tid string) *dhcpv4.DHCPv4 {
-	tidBytes := []byte(tid)
+func getMyIP() (string, error) {
+	interfaces, err := net.Interfaces()
+	if err != nil {
+		return "", err
+	}
+
+	for _, iface := range interfaces {
+		// Skip down or loopback interfaces
+		if iface.Flags&net.FlagUp == 0 || iface.Flags&net.FlagLoopback != 0 {
+			continue
+		}
+
+		addrs, err := iface.Addrs()
+		if err != nil {
+			continue
+		}
+
+		for _, addr := range addrs {
+			var ip net.IP
+			switch v := addr.(type) {
+			case *net.IPNet:
+				ip = v.IP
+			case *net.IPAddr:
+				ip = v.IP
+			}
+
+			// We want IPv4, not loopback
+			if ip == nil || ip.IsLoopback() {
+				continue
+			}
+			ip = ip.To4()
+			if ip != nil {
+				return ip.String(), nil
+			}
+		}
+	}
+	return "", fmt.Errorf("no IPv4 address found")
+}
+
+func buildRequest(payload Payload) *dhcpv4.DHCPv4 {
+	tidBytes := []byte(payload.ClientID)
 	pkt, _ := dhcpv4.New(dhcpv4.WithTransactionID(dhcpv4.TransactionID(tidBytes)))
 	pkt.Options.Update(dhcpv4.OptMessageType(dhcpv4.MessageTypeRequest))
-	msg := fmt.Sprintf("hello from client %s", tid)
+	msg, err := json.Marshal(payload)
+	if err != nil {
+		msg = []byte("error marshalling json")
+		log.Print(string(msg))
+	}
 	pkt.Options.Update(dhcpv4.OptGeneric(dhcpv4.OptionVendorSpecificInformation, []byte(msg)))
 	return pkt
 }
 
 // single transaction: create ephemeral UDP socket, send, wait for reply, close
-func doTransaction(serverAddr *net.UDPAddr, tid string) string {
+func doTransaction(payload Payload) string {
+	serverAddr := &net.UDPAddr{
+		IP:   net.ParseIP(payload.ServerAddress),
+		Port: serverPort,
+	}
 	// DialUDP with nil local addr -> OS picks ephemeral local port
 	conn, err := net.DialUDP("udp4", nil, serverAddr)
 	if err != nil {
@@ -30,7 +78,7 @@ func doTransaction(serverAddr *net.UDPAddr, tid string) string {
 	defer conn.Close()
 
 	// Build DHCP-like request
-	req := buildRequestTxn(tid)
+	req := buildRequest(payload)
 	out := req.ToBytes()
 
 	// Send request
