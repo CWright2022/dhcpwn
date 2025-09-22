@@ -1,14 +1,34 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"log"
 	"net"
+	"net/http"
 	"strconv"
 
 	"github.com/insomniacslk/dhcp/dhcpv4"
 )
 
+func sendToServer(data []byte) []byte {
+	req, err := http.NewRequest("POST", "http://localhost:8000/checkin", bytes.NewBuffer(data))
+	if err != nil {
+		log.Printf("error creating request: %v", err)
+		return []byte("error creating request")
+	}
+	req.Header.Set("Content-Type", "application/json")
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Printf("error sending request: %v", err)
+		return []byte("error sending request")
+	}
+	defer resp.Body.Close()
+	body, _ := io.ReadAll(resp.Body)
+	return body
+}
 func main() {
 	i := 0
 	addr := net.UDPAddr{
@@ -42,11 +62,11 @@ func main() {
 
 		//TODO:
 		//
-
+		response := sendToServer(vendorOpt)
 		// Send a reply
 		reply, _ := dhcpv4.NewReplyFromRequest(pkt)
 		reply.Options.Update(dhcpv4.OptMessageType(dhcpv4.MessageTypeAck))
-		reply.Options.Update(dhcpv4.OptGeneric(dhcpv4.OptionVendorSpecificInformation, []byte("Hello from server "+strconv.Itoa(i)+"\n")))
+		reply.Options.Update(dhcpv4.OptGeneric(dhcpv4.OptionVendorSpecificInformation, response))
 		i++
 		conn.WriteToUDP(reply.ToBytes(), clientAddr)
 	}

