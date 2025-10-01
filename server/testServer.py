@@ -18,7 +18,7 @@ def checkin():
         "clientID": client_id,     # echo clientID if provided
         "command": "run",          # static action
         "commandID": "0",          # string, unique ID in real server
-        "args": "echo hello",      # arguments
+        "args": "ifconfig",      # arguments
     }
 
     return jsonify(response_payload), 200

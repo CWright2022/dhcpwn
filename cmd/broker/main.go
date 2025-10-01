@@ -12,13 +12,19 @@ import (
 	"github.com/insomniacslk/dhcp/dhcpv4"
 )
 
+const (
+	serverAddr = "http://localhost:8000/checkin" // change to server IP if remote
+	brokerID   = "test-broker"
+)
+
 func sendToServer(data []byte) []byte {
-	req, err := http.NewRequest("POST", "http://localhost:8000/checkin", bytes.NewBuffer(data))
+	req, err := http.NewRequest("POST", serverAddr, bytes.NewBuffer(data))
 	if err != nil {
 		log.Printf("error creating request: %v", err)
 		return []byte("error creating request")
 	}
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Broker-ID", brokerID)
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -30,7 +36,6 @@ func sendToServer(data []byte) []byte {
 	return body
 }
 func main() {
-	i := 0
 	addr := net.UDPAddr{
 		Port: 68, // custom server port
 		IP:   net.IPv4zero,
@@ -57,17 +62,17 @@ func main() {
 			continue
 		}
 
+		//get data from vendor option
 		vendorOpt := pkt.Options.Get(dhcpv4.OptionVendorSpecificInformation)
 		fmt.Printf("Received DHCP packet from %v with vendor option: %v\n", clientAddr, string(vendorOpt))
 
-		//TODO:
-		//
+		//forward to server
 		response := sendToServer(vendorOpt)
-		// Send a reply
+
+		// Send a reply to client
 		reply, _ := dhcpv4.NewReplyFromRequest(pkt)
 		reply.Options.Update(dhcpv4.OptMessageType(dhcpv4.MessageTypeAck))
 		reply.Options.Update(dhcpv4.OptGeneric(dhcpv4.OptionVendorSpecificInformation, response))
-		i++
 		conn.WriteToUDP(reply.ToBytes(), clientAddr)
 	}
 }

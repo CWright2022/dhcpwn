@@ -65,7 +65,7 @@ func buildRequest(payload Payload) *dhcpv4.DHCPv4 {
 // single transaction: create ephemeral UDP socket, send, wait for reply, close
 func doTransaction(payload Payload) string {
 	serverAddr := &net.UDPAddr{
-		IP:   net.ParseIP(payload.ServerAddress),
+		IP:   net.ParseIP(*payload.BrokerIP),
 		Port: serverPort,
 	}
 	// DialUDP with nil local addr -> OS picks ephemeral local port
@@ -87,7 +87,7 @@ func doTransaction(payload Payload) string {
 		log.Printf("client: write failed: %v", err)
 		return "transaction-failed"
 	}
-	log.Printf("client: sent request (txn 0x%08x) from %s -> %s", req.TransactionID, conn.LocalAddr(), conn.RemoteAddr())
+	// log.Printf("client: sent request (txn 0x%08x) from %s -> %s", req.TransactionID, conn.LocalAddr(), conn.RemoteAddr())
 
 	// Set read deadline so we don't keep socket open forever
 	_ = conn.SetReadDeadline(time.Now().Add(readTO))
@@ -106,7 +106,10 @@ func doTransaction(payload Payload) string {
 		log.Printf("client: failed to parse reply: %v", err)
 		return "transaction-failed"
 	}
+	log.Printf("SENDING: %v", payload)
+	// doTransaction(payload)
 
 	vendor := reply.Options.Get(dhcpv4.OptionVendorSpecificInformation)
+	log.Printf("RECEIVED: %s", string(vendor))
 	return (string(vendor))
 }
