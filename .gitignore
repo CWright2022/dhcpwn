@@ -34,3 +34,7 @@ go.work.sum
 *
 !*/
 !*.*
+*.db
+uploads/
+downloads/
+*test*

