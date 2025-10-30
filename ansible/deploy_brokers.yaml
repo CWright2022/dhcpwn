@@ -37,7 +37,7 @@
           command="{{ router_binary_dest }}"
 
           load_rc_config $name
-          : ${{{ service_name }}_enable:="YES"}
+          : ${${service_name}_enable:="YES"}
 
           run_rc_command "$1"
 
