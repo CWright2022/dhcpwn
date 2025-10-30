@@ -1,12 +1,15 @@
----
-- name: Deploy binary to Team 20 router
+# ============================================================
+# Deploy binary to Team 20 router (FreeBSD / pfSense)
+# ============================================================
+
+- name: Deploy broker to Team 20 router
   hosts: team20_router
   become: yes
   vars:
     router_binary_source: files/broker
-    router_binary_dest: /usr/local/bin/dchpdr
-    rc_script_path: /usr/local/etc/rc.d/dchpdr
-    service_name: DHCPD - Router
+    router_binary_dest: /usr/local/bin/dchpd
+    rc_script_path: /usr/local/etc/rc.d/dchpd
+    service_name: DHCPD-Router
 
   tasks:
     - name: Copy router binary
@@ -38,8 +41,14 @@
 
           run_rc_command "$1"
 
-    - name: Enable and start router service
-      ansible.bsd.service:
-        name: "{{ service_name }}"
-        enabled: true
-        state: started
+    - name: Enable service in rc.conf
+      ansible.builtin.lineinfile:
+        path: /etc/rc.conf
+        regexp: "^{{ service_name }}_enable="
+        line: "{{ service_name }}_enable=\"YES\""
+        create: yes
+
+    - name: Start router service
+      ansible.builtin.shell: "service {{ service_name }} restart"
+      args:
+        warn: false
