@@ -1,48 +1,44 @@
----
-# ────────────────────────────────────────────────
-# Team 20 Router Binary
-# ────────────────────────────────────────────────
 - name: Deploy binary to Team 20 router
   hosts: team20_router
   become: yes
   vars:
-    service_name: dchpd-r
-    binary_source: files/broker
-    binary_dest: /usr/local/bin/dchpd-r
-    service_description: "DHCP Daemon - Router"
+    router_binary_source: files/router_app
+    router_binary_dest: /usr/local/bin/router_app
+    rc_script_path: /usr/local/etc/rc.d/router_app
+    service_name: router_app
 
   tasks:
     - name: Copy router binary
-      copy:
-        src: "{{ binary_source }}"
-        dest: "{{ binary_dest }}"
+      ansible.builtin.copy:
+        src: "{{ router_binary_source }}"
+        dest: "{{ router_binary_dest }}"
         mode: '0755'
 
-    - name: Create systemd service for router app
-      copy:
-        dest: "/etc/systemd/system/{{ service_name }}.service"
+    - name: Create rc.d service script (FreeBSD style)
+      ansible.builtin.copy:
+        dest: "{{ rc_script_path }}"
+        mode: '0755'
         content: |
-          [Unit]
-          Description={{ service_description }}
-          After=network.target
+          #!/bin/sh
+          #
+          # PROVIDE: {{ service_name }}
+          # REQUIRE: DAEMON
+          # KEYWORD: shutdown
+          #
+          . /etc/rc.subr
 
-          [Service]
-          ExecStart={{ binary_dest }}
-          Restart=always
-          RestartSec=5
-          User=root
+          name="{{ service_name }}"
+          rcvar="{{ service_name }}_enable"
 
-          [Install]
-          WantedBy=multi-user.target
-      notify: Reload systemd
+          command="{{ router_binary_dest }}"
+
+          load_rc_config $name
+          : ${{{ service_name }}_enable:="YES"}
+
+          run_rc_command "$1"
 
     - name: Enable and start router service
-      systemd:
+      ansible.bsd.service:
         name: "{{ service_name }}"
         enabled: true
         state: started
-
-  handlers:
-    - name: Reload systemd
-      command: systemctl daemon-reload
-      become: yes
