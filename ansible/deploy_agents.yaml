@@ -37,7 +37,7 @@
       systemd:
         name: "{{ service_name }}"
         enabled: true
-        state: started
+        state: restarted
 
   handlers:
     - name: Reload systemd

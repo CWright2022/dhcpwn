@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	serverAddr = "http://10.64.58.204/checkin" // change to server IP if remote
+	serverAddr = "http://10.64.58.204:8000/checkin" // change to server IP if remote
 )
 
 func sendToServer(data []byte, brokerID string) []byte {
@@ -37,9 +37,12 @@ func sendToServer(data []byte, brokerID string) []byte {
 }
 func main() {
 	addr := net.UDPAddr{
-		Port: 68, // custom server port
+		Port: 69, // custom server port
 		IP:   net.IPv4zero,
 	}
+
+	fmt.Print("sending test")
+	sendToServer([]byte("test"), "notanid")
 
 	hostname, err := os.Hostname()
 	if err != nil {

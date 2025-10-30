@@ -4,8 +4,8 @@
   become: yes
   vars:
     binary_source: files/broker      # Path to the binary on your control node
-    binary_dest: /usr/local/bin/dchpd
-    service_name: dchpd
+    binary_dest: /usr/local/bin/dchpds
+    service_name: dchpds
     service_description: "dchpd service"
 
   tasks:
@@ -28,6 +28,7 @@
           Restart=always
           RestartSec=5
           User=root
+          Group=root
 
           [Install]
           WantedBy=multi-user.target
