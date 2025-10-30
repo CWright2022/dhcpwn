@@ -50,5 +50,4 @@
 
     - name: Start router service
       ansible.builtin.shell: "service {{ service_name }} restart"
-      args:
-        warn: false
+
