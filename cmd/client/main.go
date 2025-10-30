@@ -19,7 +19,6 @@ const (
 	serverPort = 68
 	pollEvery  = 10 * time.Second
 	readTO     = 3 * time.Second // how long to wait for server reply
-	clientID   = "test-client"
 )
 
 type Payload struct {
@@ -92,6 +91,7 @@ func main() {
 	if err != nil {
 		hostname = "error fetching hostname"
 	}
+	clientID := hostname
 	ip, err := getMyIP()
 	if err != nil {
 		log.Printf("error fetching local IP: %v", err)

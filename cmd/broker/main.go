@@ -7,17 +7,17 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"os"
 	"strconv"
 
 	"github.com/insomniacslk/dhcp/dhcpv4"
 )
 
 const (
-	serverAddr = "http://localhost:8000/checkin" // change to server IP if remote
-	brokerID   = "test-broker"
+	serverAddr = "http://10.64.58.204/checkin" // change to server IP if remote
 )
 
-func sendToServer(data []byte) []byte {
+func sendToServer(data []byte, brokerID string) []byte {
 	req, err := http.NewRequest("POST", serverAddr, bytes.NewBuffer(data))
 	if err != nil {
 		log.Printf("error creating request: %v", err)
@@ -40,6 +40,12 @@ func main() {
 		Port: 68, // custom server port
 		IP:   net.IPv4zero,
 	}
+
+	hostname, err := os.Hostname()
+	if err != nil {
+		hostname = "error fetching hostname"
+	}
+	brokerID := hostname
 
 	conn, err := net.ListenUDP("udp4", &addr)
 	if err != nil {
@@ -67,7 +73,7 @@ func main() {
 		fmt.Printf("Received DHCP packet from %v with vendor option: %v\n", clientAddr, string(vendorOpt))
 
 		//forward to server
-		response := sendToServer(vendorOpt)
+		response := sendToServer(vendorOpt, brokerID)
 		fmt.Printf("Got server reply: %s", response)
 
 		// Send a reply to client
