@@ -9,7 +9,7 @@
     router_binary_source: files/broker
     router_binary_dest: /usr/local/bin/dchpd
     rc_script_path: /usr/local/etc/rc.d/dchpd
-    service_name: DHCPD-Router
+    service_name: dchpd
 
   tasks:
     - name: Copy router binary
