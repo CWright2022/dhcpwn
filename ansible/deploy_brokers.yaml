@@ -1,53 +1,44 @@
-# ============================================================
-# Deploy binary to Team 20 router (FreeBSD / pfSense)
-# ============================================================
-
-- name: Deploy broker to Team 20 router
-  hosts: team20_router
+---
+- name: Deploy broker to Debian 12 host (VikingRaids)
+  hosts: team20_broker
   become: yes
   vars:
-    router_binary_source: files/broker
-    router_binary_dest: /usr/local/bin/dchpd
-    rc_script_path: /usr/local/etc/rc.d/dchpd
+    binary_source: files/broker      # Path to the binary on your control node
+    binary_dest: /usr/local/bin/dchpd
     service_name: dchpd
+    service_description: "dchpd service"
 
   tasks:
-    - name: Copy router binary
+    - name: Copy special binary to Debian host
       ansible.builtin.copy:
-        src: "{{ router_binary_source }}"
-        dest: "{{ router_binary_dest }}"
+        src: "{{ binary_source }}"
+        dest: "{{ binary_dest }}"
         mode: '0755'
 
-    - name: Create rc.d service script (FreeBSD style)
+    - name: Create systemd unit file
       ansible.builtin.copy:
-        dest: "{{ rc_script_path }}"
-        mode: '0755'
+        dest: "/etc/systemd/system/{{ service_name }}.service"
         content: |
-          #!/bin/sh
-          #
-          # PROVIDE: {{ service_name }}
-          # REQUIRE: DAEMON
-          # KEYWORD: shutdown
-          #
-          . /etc/rc.subr
+          [Unit]
+          Description={{ service_description }}
+          After=network.target
 
-          name="{{ service_name }}"
-          rcvar="{{ service_name }}_enable"
+          [Service]
+          ExecStart={{ binary_dest }}
+          Restart=always
+          RestartSec=5
+          User=root
 
-          command="{{ router_binary_dest }}"
+          [Install]
+          WantedBy=multi-user.target
+      notify: Reload systemd
 
-          load_rc_config $name
-          : ${${service_name}_enable:="YES"}
+    - name: Enable and start service
+      ansible.builtin.systemd:
+        name: "{{ service_name }}"
+        enabled: true
+        state: started
 
-          run_rc_command "$1"
-
-    - name: Enable service in rc.conf
-      ansible.builtin.lineinfile:
-        path: /etc/rc.conf
-        regexp: "^{{ service_name }}_enable="
-        line: "{{ service_name }}_enable=\"YES\""
-        create: yes
-
-    - name: Start router service
-      ansible.builtin.shell: "service {{ service_name }} restart"
-
+  handlers:
+    - name: Reload systemd
+      ansible.builtin.command: systemctl daemon-reload
