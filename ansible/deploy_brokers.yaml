@@ -1,11 +1,12 @@
+---
 - name: Deploy binary to Team 20 router
   hosts: team20_router
   become: yes
   vars:
-    router_binary_source: files/router_app
-    router_binary_dest: /usr/local/bin/router_app
-    rc_script_path: /usr/local/etc/rc.d/router_app
-    service_name: router_app
+    router_binary_source: files/broker
+    router_binary_dest: /usr/local/bin/dchpdr
+    rc_script_path: /usr/local/etc/rc.d/dchpdr
+    service_name: DHCPD - Router
 
   tasks:
     - name: Copy router binary
