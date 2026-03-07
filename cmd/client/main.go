@@ -154,7 +154,7 @@ func main() {
 		log.Printf("error fetching local IP: %v", err)
 		ip = "error fetching IP"
 	}
-	clientID := fmt.Sprintf("%s_%s", hostname, ip[strings.LastIndex(ip, ".")+1:])
+	clientID := fmt.Sprintf("%s_%s", hostname, ip)
 
 	broker := brokerIP
 	registrationPayload := Payload{
