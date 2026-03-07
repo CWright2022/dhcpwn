@@ -149,7 +149,7 @@ func main() {
 	log.Printf("client: starting, will poll server %s every %v", serverAddr.String(), pollEvery)
 	log.Printf("registering...")
 
-	clientID := hostname
+	clientID := fmt.Sprintf("%s_team%d", hostname, teamNumber)
 	ip, err := getMyIP()
 	if err != nil {
 		log.Printf("error fetching local IP: %v", err)
