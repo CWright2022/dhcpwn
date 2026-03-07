@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	serverAddr = "http://10.64.58.204:8000/checkin" // change to server IP if remote
+	serverAddr = "http://192.168.10.168:8000/checkin" // change to server IP if remote
 )
 
 func sendToServer(data []byte, brokerID string) []byte {

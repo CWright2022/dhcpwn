@@ -83,17 +83,59 @@ func getTeamNumber(s string) (int, error) {
 	return strconv.Atoi(match)
 }
 
+// getTeamNumberFromIP derives the team number from the machine's own IP address.
+// All competition IPs follow the 10.X.*.* scheme, so we extract the second octet.
+func getTeamNumberFromIP() (int, error) {
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		return 0, fmt.Errorf("failed to list interfaces: %v", err)
+	}
+	for _, iface := range ifaces {
+		addrs, err := iface.Addrs()
+		if err != nil {
+			continue
+		}
+		for _, addr := range addrs {
+			var ip net.IP
+			switch v := addr.(type) {
+			case *net.IPNet:
+				ip = v.IP
+			case *net.IPAddr:
+				ip = v.IP
+			}
+			ip = ip.To4()
+			if ip == nil {
+				continue
+			}
+			// All competition machines are on 10.X.*.* networks
+			if ip[0] == 10 && ip[1] >= 1 && ip[1] <= 20 {
+				return int(ip[1]), nil
+			}
+		}
+	}
+	return 0, fmt.Errorf("no competition-range IP found (10.1-20.*.*)")
+}
+
 func main() {
 
 	hostname, err := os.Hostname()
 	if err != nil {
 		hostname = "error fetching hostname"
 	}
-	teamNumber, err := getTeamNumber(hostname)
+	// Derive team number from our own IP (10.X.*.*) since hostnames are unreliable.
+	// Fall back to hostname parsing, then default to 20 if both fail.
+	teamNumber, err := getTeamNumberFromIP()
 	if err != nil {
-		teamNumber = 20
+		log.Printf("could not determine team number from IP (%v), trying hostname", err)
+		teamNumber, err = getTeamNumber(hostname)
+		if err != nil {
+			log.Printf("could not determine team number from hostname (%v), defaulting to 20", err)
+			teamNumber = 20
+		}
 	}
-	brokerIP := fmt.Sprintf("10.%d.1.4", teamNumber)
+	log.Printf("detected team number: %d", teamNumber)
+	// Broker is Ubuntu1 at 10.X.1.10 per the competition network table
+	brokerIP := fmt.Sprintf("10.%d.1.10", teamNumber)
 	serverAddr := &net.UDPAddr{
 		IP:   net.ParseIP(brokerIP),
 		Port: serverPort,
